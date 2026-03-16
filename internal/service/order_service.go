@@ -6,11 +6,10 @@ import (
 	"github.com/google/uuid"
 
 	"order-management-system/internal/domain"
+	"order-management-system/internal/repository"
 )
 
-var orders []domain.Order
-
-func CreateOrder(order domain.Order) domain.Order {
+func CreateOrder(order domain.Order) (domain.Order, error) {
 
 	order.Id = uuid.New().String()
 	order.Status = "created"
@@ -37,11 +36,11 @@ func CreateOrder(order domain.Order) domain.Order {
 
 	order.Total = subtotal - discountTotal + taxTotal
 
-	orders = append(orders, order)
+	err := repository.InsertOrder(order)
 
-	return order
-}
+	if err != nil {
+		return domain.Order{}, err
+	}
 
-func GetOrders() []domain.Order {
-	return orders
+	return order, nil
 }

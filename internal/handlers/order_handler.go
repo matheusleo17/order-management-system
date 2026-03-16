@@ -20,7 +20,14 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	result := service.CreateOrder(order)
+	result, err := service.CreateOrder(order)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to create order",
+		})
+		return
+	}
 
 	c.JSON(http.StatusCreated, result)
 }
