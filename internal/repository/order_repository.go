@@ -56,20 +56,11 @@ func (r *OrderRepository) GetOrders(ctx context.Context) ([]domain.Order, error)
 func (r *OrderRepository) GetOrdersById(ctx context.Context, id string) (domain.Order, error) {
 
 	collection := database.DB.Collection(collectionName)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 	var order domain.Order
 
 	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&order)
-
 	if err != nil {
-		return nil, err
+		return domain.Order{}, err
 	}
-
-	if err = cursor.All(ctx, &order); err != nil {
-		return nil, err
-	}
-
 	return order, nil
 }

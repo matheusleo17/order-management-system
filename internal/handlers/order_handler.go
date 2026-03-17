@@ -53,16 +53,17 @@ func (h *OrderHandler) GetOrders(c *gin.Context) {
 	c.JSON(http.StatusOK, orders)
 }
 func (h *OrderHandler) GetOrderById(c *gin.Context) {
-	ctx := c.Param("id")
+	id := c.Param("id")
+	ctx := c.Request.Context()
 
-	orders, err := h.service.GetOrderById(c, ctx)
+	order, err := h.service.GetOrderById(ctx, id)
 
 	if err != nil {
-		c.JSON(http.StatusNoContent, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"error": "failed to get orders",
 		})
 		return
 	}
-	c.JSON(http.StatusOK, orders)
+	c.JSON(http.StatusOK, order)
 
 }
