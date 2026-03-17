@@ -9,10 +9,17 @@ import (
 	"order-management-system/internal/service"
 )
 
-func CreateOrder(c *gin.Context) {
+type OrderHandler struct {
+	service *service.OrderService
+}
+
+func NewOrderHandler(s *service.OrderService) *OrderHandler {
+	return &OrderHandler{service: s}
+}
+func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 	var order domain.Order
-
+	ctx := c.Request.Context()
 	if err := c.BindJSON(&order); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid json",
@@ -20,7 +27,7 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	result, err := service.CreateOrder(order)
+	result, err := h.service.CreateOrder(ctx, order)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -30,4 +37,32 @@ func CreateOrder(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, result)
+}
+func (h *OrderHandler) GetOrders(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	orders, err := h.service.GetOrders(ctx)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to get orders",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
+}
+func (h *OrderHandler) GetOrderById(c *gin.Context) {
+	ctx := c.Param("id")
+
+	orders, err := h.service.GetOrderById(c, ctx)
+
+	if err != nil {
+		c.JSON(http.StatusNoContent, gin.H{
+			"error": "failed to get orders",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, orders)
+
 }

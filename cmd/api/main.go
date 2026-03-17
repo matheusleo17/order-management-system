@@ -7,6 +7,8 @@ import (
 
 	"order-management-system/internal/database"
 	"order-management-system/internal/handlers"
+	"order-management-system/internal/repository"
+	"order-management-system/internal/service"
 )
 
 func main() {
@@ -18,7 +20,12 @@ func main() {
 	}
 	router := gin.Default()
 
-	router.POST("/orders", handlers.CreateOrder)
+	repo := repository.NewOrderRepository()
+	service := service.NewOrderService(repo)
+	handler := handlers.NewOrderHandler(service)
+
+	router.POST("/orders", handler.CreateOrder)
+	router.GET("/orders", handler.GetOrders)
 
 	router.Run(":8080")
 }

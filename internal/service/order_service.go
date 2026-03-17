@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,7 +10,14 @@ import (
 	"order-management-system/internal/repository"
 )
 
-func CreateOrder(order domain.Order) (domain.Order, error) {
+type OrderService struct {
+	repo *repository.OrderRepository
+}
+
+func NewOrderService(repo *repository.OrderRepository) *OrderService {
+	return &OrderService{repo: repo}
+}
+func (s *OrderService) CreateOrder(ctx context.Context, order domain.Order) (domain.Order, error) {
 
 	order.Id = uuid.New().String()
 	order.Status = "created"
@@ -36,11 +44,18 @@ func CreateOrder(order domain.Order) (domain.Order, error) {
 
 	order.Total = subtotal - discountTotal + taxTotal
 
-	err := repository.InsertOrder(order)
+	err := s.repo.InsertOrder(ctx, order)
 
 	if err != nil {
 		return domain.Order{}, err
 	}
 
 	return order, nil
+}
+func (s *OrderService) GetOrders(ctx context.Context) ([]domain.Order, error) {
+	return s.repo.GetOrders(ctx)
+}
+
+func (s *OrderService) GetOrderById(ctx context.Context, id string) (domain.Order, error) {
+	return s.repo.GetOrdersById(ctx, id)
 }
