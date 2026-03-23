@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"order-management-system/internal/domain"
 	"order-management-system/internal/service"
@@ -66,4 +67,49 @@ func (h *OrderHandler) GetOrderById(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, order)
 
+}
+func (h *OrderHandler) UpdateOrder(c *gin.Context) {
+	var order domain.Order
+
+	if err := c.BindJSON(&order); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid json",
+		})
+		return
+	}
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	err := h.service.UpdateOrder(ctx, id, order)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed update order",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "order updated",
+	})
+
+}
+func (h *OrderHandler) DeleteOrder(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+	err := h.service.DeleteOrder(ctx, id)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "order not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to delete order",
+		})
+		return
+
+	}
+	c.Status(http.StatusNoContent)
 }

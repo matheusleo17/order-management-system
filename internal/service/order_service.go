@@ -59,3 +59,11 @@ func (s *OrderService) GetOrders(ctx context.Context) ([]domain.Order, error) {
 func (s *OrderService) GetOrderById(ctx context.Context, id string) (domain.Order, error) {
 	return s.repo.GetOrdersById(ctx, id)
 }
+
+func (s *OrderService) UpdateOrder(ctx context.Context, id string, order domain.Order) error {
+	return s.repo.UpdateOrder(ctx, id, order)
+}
+
+func (s *OrderService) DeleteOrder(ctx context.Context, id string) error {
+	return s.repo.DeleteOrder(ctx, id)
+}

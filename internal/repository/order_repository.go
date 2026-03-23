@@ -8,6 +8,7 @@ import (
 	"order-management-system/internal/domain"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type OrderRepository struct {
@@ -63,4 +64,32 @@ func (r *OrderRepository) GetOrdersById(ctx context.Context, id string) (domain.
 		return domain.Order{}, err
 	}
 	return order, nil
+}
+
+func (r *OrderRepository) UpdateOrder(ctx context.Context, id string, order domain.Order) error {
+	collection := database.DB.Collection(collectionName)
+
+	filter := bson.M{"_id": id}
+
+	update := bson.M{
+		"$set": order,
+	}
+	_, err := collection.UpdateOne(ctx, filter, update)
+
+	return err
+}
+
+func (r *OrderRepository) DeleteOrder(ctx context.Context, id string) error {
+	collection := database.DB.Collection(collectionName)
+
+	filter := bson.M{"_id": id}
+
+	result, err := collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
+		return mongo.ErrNoDocuments
+	}
+	return nil
 }
