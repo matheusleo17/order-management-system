@@ -27,6 +27,8 @@ func main() {
 	router.POST("/orders", handler.CreateOrder)
 	router.GET("/orders", handler.GetOrders)
 	router.GET("/orders/:id", handler.GetOrderById)
+	router.PUT("/orders/:id", handler.UpdateOrder)
+	router.DELETE("/oders/:id", handler.DeleteOrder)
 
 	router.Run(":8080")
 }
