@@ -7,6 +7,7 @@ import (
 
 	"order-management-system/internal/database"
 	"order-management-system/internal/handlers"
+	"order-management-system/internal/messaging"
 	"order-management-system/internal/repository"
 	"order-management-system/internal/service"
 )
@@ -20,8 +21,12 @@ func main() {
 	}
 	router := gin.Default()
 
+	publisher, err := messaging.NewRabbitMQPublisher("amqp://guest:guest@localhost:5672/")
+	if err != nil {
+		panic(err)
+	}
 	repo := repository.NewOrderRepository()
-	service := service.NewOrderService(repo)
+	service := service.NewOrderService(repo, publisher)
 	handler := handlers.NewOrderHandler(service)
 
 	router.POST("/orders", handler.CreateOrder)

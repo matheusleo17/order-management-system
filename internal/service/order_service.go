@@ -7,15 +7,21 @@ import (
 	"github.com/google/uuid"
 
 	"order-management-system/internal/domain"
+	"order-management-system/internal/events"
+	"order-management-system/internal/messaging"
 	"order-management-system/internal/repository"
 )
 
 type OrderService struct {
-	repo *repository.OrderRepository
+	repo      *repository.OrderRepository
+	publisher *messaging.RabbitMqPublisher
 }
 
-func NewOrderService(repo *repository.OrderRepository) *OrderService {
-	return &OrderService{repo: repo}
+func NewOrderService(repo *repository.OrderRepository, publisher *messaging.RabbitMqPublisher) *OrderService {
+	return &OrderService{
+		repo:      repo,
+		publisher: publisher,
+	}
 }
 func (s *OrderService) CreateOrder(ctx context.Context, order domain.Order) (domain.Order, error) {
 
@@ -24,6 +30,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, order domain.Order) (dom
 	order.CreatedAt = time.Now()
 	order.UpdatedAt = time.Now()
 
+	event := events.OrderCreatedEvent{
+		OrderID: order.Id,
+		Total:   order.Total,
+	}
+
+	_ = s.publisher.Publish("order.created", event)
 	var subtotal float64
 
 	for _, item := range order.Items {
