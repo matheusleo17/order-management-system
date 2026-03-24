@@ -6,13 +6,14 @@ import (
 	"os"
 
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 )
 
 type RabbitMqPublisher struct {
 	channel *amqp.Channel
 }
 
-func NewRabbitMQPublisher() (*RabbitMqPublisher, error) {
+func NewRabbitMQPublisher(log *zap.Logger) (*RabbitMqPublisher, error) {
 	url := os.Getenv("RABBITMQ_URI")
 	if url == "" {
 		url = "amqp://guest:guest@localhost:5672/"

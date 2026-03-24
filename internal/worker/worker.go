@@ -2,65 +2,71 @@ package worker
 
 import (
 	"encoding/json"
-	"log"
 
 	"order-management-system/internal/events"
 
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 )
 
 const maxRetries = 3
 
-func StartWorker(msgs <-chan amqp.Delivery) {
+func StartWorker(msgs <-chan amqp.Delivery, log *zap.Logger) {
 	for msg := range msgs {
-		go handleMessage(msg)
+		go handleMessage(msg, log)
 	}
 }
 
-func handleMessage(msg amqp.Delivery) {
+func handleMessage(msg amqp.Delivery, log *zap.Logger) {
 	retryCount := getRetryCount(msg)
 
 	if retryCount >= maxRetries {
-		log.Printf("Max retries (%d) reached, sending to DLQ", maxRetries)
+		log.Warn("Max retries reached, sending to DLQ",
+			zap.Int("maxRetries", maxRetries))
 		msg.Nack(false, false)
 		return
 	}
 
 	var event events.OrderCreatedEvent
 	if err := json.Unmarshal(msg.Body, &event); err != nil {
-		log.Printf("Failed to unmarshal message (retry %d/%d): %v", retryCount+1, maxRetries, err)
+		log.Warn("Failed to unmarshal message",
+			zap.Int("retryCount", retryCount+1),
+			zap.Int("maxRetries", maxRetries),
+			zap.Error(err))
+
 		msg.Nack(false, true)
 		return
 	}
 
-	log.Printf("Processing order: %s (attempt %d/%d)", event.OrderID, retryCount+1, maxRetries)
+	log.Info("Processing order",
+		zap.String("orderID", event.OrderID),
+		zap.Int("retryCount", retryCount+1),
+		zap.Int("maxRetries", maxRetries))
 
-	if err := processOrder(event); err != nil {
-		log.Printf("Failed to process order %s (attempt %d/%d): %v", event.OrderID, retryCount+1, maxRetries, err)
+	if err := processOrder(event, log); err != nil {
+		log.Error("Failed to process order",
+			zap.String("orderID", event.OrderID),
+			zap.Int("retryCount", retryCount+1),
+			zap.Int("maxRetries", maxRetries),
+			zap.Error(err))
 		msg.Nack(false, true)
 		return
 	}
 
-	log.Printf("Order processed successfully: %s", event.OrderID)
+	log.Info("Order processed successfully: ", zap.String("orderID", event.OrderID))
 	msg.Ack(false)
 }
 
-func processOrder(event events.OrderCreatedEvent) error {
-	// TODO: implement real business logic here
-	// Example: notify inventory, send confirmation email, etc.
-	log.Printf("Processing order %s with total %.2f", event.OrderID, event.Total)
+func processOrder(event events.OrderCreatedEvent, log *zap.Logger) error {
+	log.Info("Processing order with total", zap.String("orderID", event.OrderID), zap.Float64("total", event.Total))
 	return nil
 }
 
-// getRetryCount reads the explicit retry header set by the publisher.
-// Falls back to x-death count from RabbitMQ for backwards compatibility.
 func getRetryCount(msg amqp.Delivery) int {
-	// Check explicit retry header first
 	if count, ok := msg.Headers["x-retry-count"].(int32); ok {
 		return int(count)
 	}
 
-	// Fallback: count via RabbitMQ x-death header
 	if deaths, ok := msg.Headers["x-death"].([]interface{}); ok && len(deaths) > 0 {
 		if death, ok := deaths[0].(amqp.Table); ok {
 			if count, ok := death["count"].(int64); ok {
