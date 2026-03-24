@@ -35,7 +35,6 @@ func (uc *CreateOrderUseCase) Execute(ctx context.Context, order *domain.Order) 
 		return fmt.Errorf("order must have at least one item")
 	}
 
-	// Generate ID and timestamps server-side
 	order.Id = uuid.New().String()
 	order.CreatedAt = time.Now()
 	order.UpdatedAt = time.Now()
@@ -49,7 +48,6 @@ func (uc *CreateOrderUseCase) Execute(ctx context.Context, order *domain.Order) 
 	}
 
 	if err := uc.publisher.Publish("order.created", order); err != nil {
-		// Log but don't fail the request — order was already saved
 		return fmt.Errorf("order saved but failed to publish event: %w", err)
 	}
 

@@ -72,7 +72,6 @@ func (r *OrderRepositoryMongo) GetOrdersById(ctx context.Context, id string) (do
 	return order, nil
 }
 
-// OrderUpdateFields contains only the fields that can be updated
 type OrderUpdateFields struct {
 	Items     []domain.OrderItem `bson:"items"`
 	Discounts []domain.Discount  `bson:"discounts"`
@@ -93,7 +92,6 @@ func (r *OrderRepositoryMongo) UpdateOrder(ctx context.Context, id string, order
 
 	filter := bson.M{"_id": id}
 
-	// Only update mutable fields, preserving CreatedAt and Id
 	update := bson.M{
 		"$set": OrderUpdateFields{
 			Items:     order.Items,
