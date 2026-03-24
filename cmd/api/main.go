@@ -5,35 +5,44 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"order-management-system/internal/database"
-	"order-management-system/internal/handlers"
-	"order-management-system/internal/messaging"
-	"order-management-system/internal/repository"
-	"order-management-system/internal/service"
+	handlers "order-management-system/internal/delivery/http"
+	"order-management-system/internal/infrastructure/database"
+	"order-management-system/internal/infrastructure/database/messaging"
+	"order-management-system/internal/infrastructure/repository"
+	"order-management-system/internal/usecase"
 )
 
 func main() {
 
 	err := database.ConnectMongo()
-
 	if err != nil {
 		log.Fatal("Mongo Connection Failed", err)
 	}
+
 	router := gin.Default()
 
+	repo := repository.NewOrderRepositoryMongo()
 	publisher, err := messaging.NewRabbitMQPublisher("amqp://guest:guest@localhost:5672/")
-	if err != nil {
-		panic(err)
-	}
-	repo := repository.NewOrderRepository()
-	service := service.NewOrderService(repo, publisher)
-	handler := handlers.NewOrderHandler(service)
+
+	createUC := usecase.NewCreateOrderUseCase(repo, publisher)
+	getAllUC := usecase.NewGetOrdersUseCase(repo)
+	getByIdUC := usecase.NewGetOrderByIdUseCase(repo)
+	updateUC := usecase.NewUpdateOrderUseCase(repo)
+	deleteUC := usecase.NewDeleteOrderUseCase(repo)
+
+	handler := handlers.NewOrderHandler(
+		createUC,
+		getAllUC,
+		getByIdUC,
+		updateUC,
+		deleteUC,
+	)
 
 	router.POST("/orders", handler.CreateOrder)
 	router.GET("/orders", handler.GetOrders)
 	router.GET("/orders/:id", handler.GetOrderById)
 	router.PUT("/orders/:id", handler.UpdateOrder)
-	router.DELETE("/oders/:id", handler.DeleteOrder)
+	router.DELETE("/orders/:id", handler.DeleteOrder)
 
 	router.Run(":8080")
 }

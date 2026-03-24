@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"order-management-system/internal/messaging"
+	"order-management-system/internal/infrastructure/messaging"
 	"order-management-system/internal/worker"
 )
 
