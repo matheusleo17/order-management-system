@@ -8,17 +8,16 @@ import (
 )
 
 func main() {
-	consumer, err := messaging.NewRabbitMQConsumer("amqp://guest:guest@localhost:5672/")
+	consumer, err := messaging.NewRabbitMQConsumer()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to connect to RabbitMQ: ", err)
 	}
 
 	msgs, err := consumer.Consume("order.created")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to start consuming: ", err)
 	}
 
-	log.Println("Worker rodando...")
-
+	log.Println("Worker running...")
 	worker.StartWorker(msgs)
 }
