@@ -2,13 +2,14 @@ package worker
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 
 	"order-management-system/internal/events"
 
 	"github.com/streadway/amqp"
 )
+
+const maxRetries = 3
 
 func StartWorker(msgs <-chan amqp.Delivery) {
 	for msg := range msgs {
@@ -17,52 +18,56 @@ func StartWorker(msgs <-chan amqp.Delivery) {
 }
 
 func handleMessage(msg amqp.Delivery) {
-	var event events.OrderCreatedEvent
-
 	retryCount := getRetryCount(msg)
-	maxRetries := 3
 
 	if retryCount >= maxRetries {
-		log.Println("Enviando para DLQ:", retryCount)
-
+		log.Printf("Max retries (%d) reached, sending to DLQ", maxRetries)
 		msg.Nack(false, false)
 		return
 	}
 
-	err := json.Unmarshal(msg.Body, &event)
-	if err != nil {
-		log.Println("erro", err)
-		msg.Nack(false, true)
-		return
-	}
-	log.Println("Processando pedido:", event.OrderID)
-
-	err = processOrder(event)
-	if err != nil {
-		log.Println("erro no processamento:", err)
-
+	var event events.OrderCreatedEvent
+	if err := json.Unmarshal(msg.Body, &event); err != nil {
+		log.Printf("Failed to unmarshal message (retry %d/%d): %v", retryCount+1, maxRetries, err)
 		msg.Nack(false, true)
 		return
 	}
 
+	log.Printf("Processing order: %s (attempt %d/%d)", event.OrderID, retryCount+1, maxRetries)
+
+	if err := processOrder(event); err != nil {
+		log.Printf("Failed to process order %s (attempt %d/%d): %v", event.OrderID, retryCount+1, maxRetries, err)
+		msg.Nack(false, true)
+		return
+	}
+
+	log.Printf("Order processed successfully: %s", event.OrderID)
 	msg.Ack(false)
 }
 
 func processOrder(event events.OrderCreatedEvent) error {
-	if event.Total > 1000 {
-		return errors.New("erro simulado")
-	}
-
-	log.Println("Processado com sucesso:", event.OrderID)
+	// TODO: implement real business logic here
+	// Example: notify inventory, send confirmation email, etc.
+	log.Printf("Processing order %s with total %.2f", event.OrderID, event.Total)
 	return nil
 }
 
+// getRetryCount reads the explicit retry header set by the publisher.
+// Falls back to x-death count from RabbitMQ for backwards compatibility.
 func getRetryCount(msg amqp.Delivery) int {
+	// Check explicit retry header first
+	if count, ok := msg.Headers["x-retry-count"].(int32); ok {
+		return int(count)
+	}
+
+	// Fallback: count via RabbitMQ x-death header
 	if deaths, ok := msg.Headers["x-death"].([]interface{}); ok && len(deaths) > 0 {
-		death := deaths[0].(amqp.Table)
-		if count, ok := death["count"].(int64); ok {
-			return int(count)
+		if death, ok := deaths[0].(amqp.Table); ok {
+			if count, ok := death["count"].(int64); ok {
+				return int(count)
+			}
 		}
 	}
+
 	return 0
 }
