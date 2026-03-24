@@ -3,6 +3,9 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"github.com/google/uuid"
 
 	"order-management-system/internal/domain"
 	"order-management-system/internal/repository"
@@ -28,21 +31,26 @@ func NewCreateOrderUseCase(
 }
 
 func (uc *CreateOrderUseCase) Execute(ctx context.Context, order *domain.Order) error {
-
 	if len(order.Items) == 0 {
 		return fmt.Errorf("order must have at least one item")
 	}
 
-	// 2. Persistir
-	err := uc.repo.InsertOrder(ctx, *order)
-	if err != nil {
-		return err
+	// Generate ID and timestamps server-side
+	order.Id = uuid.New().String()
+	order.CreatedAt = time.Now()
+	order.UpdatedAt = time.Now()
+
+	if order.Status == "" {
+		order.Status = "pending"
 	}
 
-	// 3. Publicar evento
-	err = uc.publisher.Publish("order.created", order)
-	if err != nil {
-		return err
+	if err := uc.repo.InsertOrder(ctx, *order); err != nil {
+		return fmt.Errorf("failed to persist order: %w", err)
+	}
+
+	if err := uc.publisher.Publish("order.created", order); err != nil {
+		// Log but don't fail the request — order was already saved
+		return fmt.Errorf("order saved but failed to publish event: %w", err)
 	}
 
 	return nil
