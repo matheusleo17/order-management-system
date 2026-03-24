@@ -25,7 +25,7 @@ func handleMessage(msg amqp.Delivery) {
 	if retryCount >= maxRetries {
 		log.Println("Enviando para DLQ:", retryCount)
 
-		msg.Nack(false, false) // 👈 NÃO requeue
+		msg.Nack(false, false)
 		return
 	}
 
