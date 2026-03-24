@@ -7,22 +7,22 @@ import (
 
 	handlers "order-management-system/internal/delivery/http"
 	"order-management-system/internal/infrastructure/database"
-	"order-management-system/internal/infrastructure/database/messaging"
+	"order-management-system/internal/infrastructure/messaging"
 	"order-management-system/internal/infrastructure/repository"
 	"order-management-system/internal/usecase"
 )
 
 func main() {
-
-	err := database.ConnectMongo()
-	if err != nil {
-		log.Fatal("Mongo Connection Failed", err)
+	if err := database.ConnectMongo(); err != nil {
+		log.Fatal("Mongo connection failed: ", err)
 	}
 
-	router := gin.Default()
+	publisher, err := messaging.NewRabbitMQPublisher()
+	if err != nil {
+		log.Fatal("RabbitMQ connection failed: ", err)
+	}
 
 	repo := repository.NewOrderRepositoryMongo()
-	publisher, err := messaging.NewRabbitMQPublisher("amqp://guest:guest@localhost:5672/")
 
 	createUC := usecase.NewCreateOrderUseCase(repo, publisher)
 	getAllUC := usecase.NewGetOrdersUseCase(repo)
@@ -37,6 +37,8 @@ func main() {
 		updateUC,
 		deleteUC,
 	)
+
+	router := gin.Default()
 
 	router.POST("/orders", handler.CreateOrder)
 	router.GET("/orders", handler.GetOrders)
