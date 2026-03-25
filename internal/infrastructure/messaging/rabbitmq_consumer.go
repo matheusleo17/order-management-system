@@ -5,17 +5,20 @@ import (
 	"os"
 
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 )
 
 type RabbitMQConsumer struct {
 	channel *amqp.Channel
+	log     *zap.Logger
 }
 
-func NewRabbitMQConsumer() (*RabbitMQConsumer, error) {
+func NewRabbitMQConsumer(log *zap.Logger) (*RabbitMQConsumer, error) {
 	url := os.Getenv("RABBITMQ_URI")
 	if url == "" {
 		url = "amqp://guest:guest@localhost:5672/"
 	}
+	log.Info("Connecting to RabbitMQ (consumer)")
 
 	conn, err := amqp.Dial(url)
 	if err != nil {
@@ -26,9 +29,11 @@ func NewRabbitMQConsumer() (*RabbitMQConsumer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open channel: %w", err)
 	}
+	log.Info("RabbitMQ consumer connected")
 
 	return &RabbitMQConsumer{
 		channel: ch,
+		log:     log,
 	}, nil
 }
 

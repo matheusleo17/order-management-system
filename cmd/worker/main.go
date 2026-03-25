@@ -5,10 +5,13 @@ import (
 	"order-management-system/internal/logger"
 	"order-management-system/internal/worker"
 
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
 func main() {
+	godotenv.Load()
+
 	log := logger.New()
 	defer log.Sync()
 	consumer, err := messaging.NewRabbitMQConsumer()

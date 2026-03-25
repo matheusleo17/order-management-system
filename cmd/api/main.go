@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
 	handlers "order-management-system/internal/delivery/http"
@@ -13,6 +14,7 @@ import (
 )
 
 func main() {
+	godotenv.Load()
 	log := logger.New()
 	defer log.Sync()
 	if err := database.ConnectMongo(log); err != nil {

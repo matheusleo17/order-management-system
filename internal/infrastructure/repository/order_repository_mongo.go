@@ -12,15 +12,27 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type OrderRepositoryMongo struct{}
+type orderRepositoryMongo struct{}
 
-func NewOrderRepositoryMongo() *OrderRepositoryMongo {
-	return &OrderRepositoryMongo{}
+type orderUpdateFields struct {
+	Items     []domain.OrderItem `bson:"items"`
+	Discounts []domain.Discount  `bson:"discounts"`
+	Taxes     []domain.Tax       `bson:"taxes"`
+	Payment   domain.Payment     `bson:"payment"`
+	Shipment  domain.Shipment    `bson:"shipment"`
+	Status    string             `bson:"status"`
+	Subtotal  float64            `bson:"subtotal"`
+	Total     float64            `bson:"total"`
+	UpdatedAt time.Time          `bson:"updated_at"`
+}
+
+func NewOrderRepositoryMongo() *orderRepositoryMongo {
+	return &orderRepositoryMongo{}
 }
 
 const collectionName = "orders"
 
-func (r *OrderRepositoryMongo) InsertOrder(ctx context.Context, order domain.Order) error {
+func (r *orderRepositoryMongo) InsertOrder(ctx context.Context, order domain.Order) error {
 	collection := database.GetDB().Collection(collectionName)
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -34,7 +46,7 @@ func (r *OrderRepositoryMongo) InsertOrder(ctx context.Context, order domain.Ord
 	return nil
 }
 
-func (r *OrderRepositoryMongo) GetOrders(ctx context.Context) ([]domain.Order, error) {
+func (r *orderRepositoryMongo) GetOrders(ctx context.Context) ([]domain.Order, error) {
 	collection := database.GetDB().Collection(collectionName)
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -54,7 +66,7 @@ func (r *OrderRepositoryMongo) GetOrders(ctx context.Context) ([]domain.Order, e
 	return orders, nil
 }
 
-func (r *OrderRepositoryMongo) GetOrdersById(ctx context.Context, id string) (domain.Order, error) {
+func (r *orderRepositoryMongo) GetOrdersById(ctx context.Context, id string) (domain.Order, error) {
 	collection := database.GetDB().Collection(collectionName)
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -72,19 +84,7 @@ func (r *OrderRepositoryMongo) GetOrdersById(ctx context.Context, id string) (do
 	return order, nil
 }
 
-type OrderUpdateFields struct {
-	Items     []domain.OrderItem `bson:"items"`
-	Discounts []domain.Discount  `bson:"discounts"`
-	Taxes     []domain.Tax       `bson:"taxes"`
-	Payment   domain.Payment     `bson:"payment"`
-	Shipment  domain.Shipment    `bson:"shipment"`
-	Status    string             `bson:"status"`
-	Subtotal  float64            `bson:"subtotal"`
-	Total     float64            `bson:"total"`
-	UpdatedAt time.Time          `bson:"updated_at"`
-}
-
-func (r *OrderRepositoryMongo) UpdateOrder(ctx context.Context, id string, order domain.Order) error {
+func (r *orderRepositoryMongo) UpdateOrder(ctx context.Context, id string, order domain.Order) error {
 	collection := database.GetDB().Collection(collectionName)
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -93,7 +93,7 @@ func (r *OrderRepositoryMongo) UpdateOrder(ctx context.Context, id string, order
 	filter := bson.M{"_id": id}
 
 	update := bson.M{
-		"$set": OrderUpdateFields{
+		"$set": orderUpdateFields{
 			Items:     order.Items,
 			Discounts: order.Discounts,
 			Taxes:     order.Taxes,
@@ -118,7 +118,7 @@ func (r *OrderRepositoryMongo) UpdateOrder(ctx context.Context, id string, order
 	return nil
 }
 
-func (r *OrderRepositoryMongo) DeleteOrder(ctx context.Context, id string) error {
+func (r *orderRepositoryMongo) DeleteOrder(ctx context.Context, id string) error {
 	collection := database.GetDB().Collection(collectionName)
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
