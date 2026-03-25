@@ -90,7 +90,6 @@ A API estará disponível em `http://localhost:8080`.
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| GET | /health | Healthcheck da aplicação |
 | POST | /orders | Criar pedido |
 | GET | /orders | Listar pedidos |
 | GET | /orders/:id | Buscar pedido por ID |
