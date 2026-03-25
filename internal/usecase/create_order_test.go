@@ -13,6 +13,7 @@ import (
 
 type mockOrderRepository struct {
 	insertErr error
+	deleteErr error
 	inserted  *domain.Order
 }
 
@@ -121,5 +122,24 @@ func TestCreateOrder_PublisherError(t *testing.T) {
 
 	if err := uc.Execute(context.Background(), order); err == nil {
 		t.Fatal("expected error from publisher, got nil")
+	}
+}
+
+func TestDeleteOrder_Success(t *testing.T) {
+	repo := &mockOrderRepository{}
+	uc := usecase.NewDeleteOrderUseCase(repo)
+
+	if err := uc.Execute(context.Background(), "order123"); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+}
+
+func TestDeleteOrder_NotFound(t *testing.T) {
+	repo := &mockOrderRepository{deleteErr: errors.New("not found")}
+	uc := usecase.NewDeleteOrderUseCase(repo)
+
+	err := uc.Execute(context.Background(), "order123")
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
 }

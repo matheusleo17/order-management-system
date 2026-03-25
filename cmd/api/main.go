@@ -1,25 +1,29 @@
 package main
 
 import (
-	"log"
-
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 
 	handlers "order-management-system/internal/delivery/http"
 	"order-management-system/internal/infrastructure/database"
 	"order-management-system/internal/infrastructure/messaging"
 	"order-management-system/internal/infrastructure/repository"
+	"order-management-system/internal/logger"
 	"order-management-system/internal/usecase"
 )
 
 func main() {
-	if err := database.ConnectMongo(); err != nil {
-		log.Fatal("Mongo connection failed: ", err)
+	godotenv.Load()
+	log := logger.New()
+	defer log.Sync()
+	if err := database.ConnectMongo(log); err != nil {
+		log.Fatal("Mongo connection failed", zap.Error(err))
 	}
 
-	publisher, err := messaging.NewRabbitMQPublisher()
+	publisher, err := messaging.NewRabbitMQPublisher(log)
 	if err != nil {
-		log.Fatal("RabbitMQ connection failed: ", err)
+		log.Fatal("RabbitMQ connection failed", zap.Error(err))
 	}
 
 	repo := repository.NewOrderRepositoryMongo()
@@ -45,6 +49,10 @@ func main() {
 	router.GET("/orders/:id", handler.GetOrderById)
 	router.PUT("/orders/:id", handler.UpdateOrder)
 	router.DELETE("/orders/:id", handler.DeleteOrder)
+	log.Info("API starting", zap.String("port", "8080"))
 
 	router.Run(":8080")
+	if err := router.Run(":8080"); err != nil {
+		log.Fatal("Failed to start server", zap.Error(err))
+	}
 }

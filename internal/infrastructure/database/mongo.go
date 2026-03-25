@@ -9,6 +9,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 )
 
 var (
@@ -16,7 +17,7 @@ var (
 	once sync.Once
 )
 
-func ConnectMongo() error {
+func ConnectMongo(log *zap.Logger) error {
 	var connectErr error
 
 	once.Do(func() {
